@@ -203,7 +203,6 @@ static void unary()
      * as PREC_UNARY has a higher precedence than plus
      */
     parsePrecedence(PREC_UNARY);
-    expression();
 
     switch (operatorType)
     {
