@@ -46,6 +46,10 @@ Value peek(int offset) {
     return vm.stackTop[-1 - offset];
 }
 
+static bool isFalsey(Value value) {
+    return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
+}
+
 static InterpretResult run() {
 #define READ_BYTE() (*vm.ip++)
 #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
@@ -86,6 +90,9 @@ static InterpretResult run() {
             case OP_SUB: BINARY_OP(NUMBER_VAL, -); break;
             case OP_MUL: BINARY_OP(NUMBER_VAL, *); break;
             case OP_DIV: BINARY_OP(NUMBER_VAL, /); break;
+            case OP_NOT:
+                push(BOOL_VAL(isFalsey(pop())));
+                break;
             case OP_NEGATE:
                 if (!IS_NUMBER(peek(0))) {
                     runtimeError("Operand must be a number.");
