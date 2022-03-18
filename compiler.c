@@ -5,6 +5,10 @@
 #include "compiler.h"
 #include "scanner.h"
 
+#ifdef DEBUG_PRINT_CODE
+#include "debug.h"
+#endif
+
 typedef struct
 {
     Token current;
@@ -49,6 +53,7 @@ static void errorAt(Token *token, const char *message)
 {
     if (parser.panicMode)
         return;
+
     parser.panicMode = true;
 
     fprintf(stderr, "[line %d] Error", token->line);
@@ -78,7 +83,7 @@ static void errorAtCurrent(const char *message)
     errorAt(&parser.current, message);
 }
 
-static void advance()
+static void advanceToken()
 {
     parser.previous = parser.current;
 
@@ -96,7 +101,7 @@ static void consume(TokenType type, const char *message)
 {
     if (parser.current.type == type)
     {
-        advance();
+        advanceToken();
         return;
     }
 
@@ -139,6 +144,12 @@ static void emitConstant(Value value)
 static void endCompiler()
 {
     emitReturn();
+
+#ifdef DEBUG_PRINT_CODE
+    if (!parser.hadError) {
+        disassembleChunk(currentChunk(), "code");
+    }
+#endif
 }
 
 static void expression();
@@ -249,7 +260,7 @@ ParseRule rules[] = {
 
 static void parsePrecedence(Precedence precedence)
 {
-    advance();
+    advanceToken();
     ParseFn prefixRule = getRule(parser.previous.type)->prefix;
     if (prefixRule == NULL) {
         error("Expected expression.");
@@ -259,7 +270,7 @@ static void parsePrecedence(Precedence precedence)
     prefixRule();
 
     while(precedence <= getRule(parser.current.type)->precedence) {
-        advance();
+        advanceToken();
         ParseFn infixRule = getRule(parser.previous.type)->infix;
         infixRule();
     }
@@ -282,7 +293,8 @@ bool compile(const char *source, Chunk *chunk)
     parser.hadError = false;
     parser.panicMode = false;
 
-    advance();
+    advanceToken();
+
     expression();
     consume(TOKEN_EOF, "Expected end of expression.");
 

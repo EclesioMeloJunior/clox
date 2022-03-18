@@ -47,7 +47,12 @@ static char advance() {
 
 static char peek(int offset) {
     if (isAtEnd()) return '\0';
-    return scanner.current[offset];
+
+    if (offset != 0) {
+        return scanner.current[offset];
+    }
+
+    return *scanner.current;
 }
 
 static bool match(char expected) {
@@ -58,25 +63,27 @@ static bool match(char expected) {
 }
 
 static bool isAlpha(char c) {
-    return (c >= 'a' && c <= 'z') ||
+     return (c >= 'a' && c <= 'z') ||
             (c >= 'A' && c <= 'Z') ||
             c == '_';
 }
 
 static bool isDigit(char c) {
-    return c >= '0' || c <= '9';
+    return c >= '0' && c <= '9';
 }
 
 static Token number() {
     while (isDigit(peek(0))) advance();
 
-    if (peek(0) == '.' && isDigit(peek(1))) {
-        advance(); // consume the dot char
-        
-        while (isDigit(peek(0))) advance();
-    }
+  // Look for a fractional part.
+  if (peek(0) == '.' && isDigit(peek(1))) {
+    // Consume the ".".
+    advance();
 
-    return makeToken(TOKEN_NUMBER);
+    while (isDigit(peek(0))) advance();
+  }
+
+  return makeToken(TOKEN_NUMBER);
 }
 
 static Token string() {
@@ -89,6 +96,7 @@ static Token string() {
 
     // consume the closing quote.
     advance();
+
     return makeToken(TOKEN_STRING);
 }
 
@@ -171,8 +179,6 @@ static void skipWhitespace() {
     }
 }
 
-
-
 Token scanToken() {
     skipWhitespace();
 
@@ -181,8 +187,12 @@ Token scanToken() {
     if (isAtEnd()) return makeToken(TOKEN_EOF);
 
     char c = advance();
-    if (isAlpha(c)) return identifier();
-    if (isDigit(c)) return number();
+    if (isAlpha(c)) {
+        return identifier();
+    }
+    if (isDigit(c)) {
+        return number();
+    }
 
     switch (c) {
         case '(': return makeToken(TOKEN_LEFT_PAREN);
